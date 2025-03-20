@@ -1,10 +1,12 @@
 use std::{
     collections::{HashMap, HashSet},
+    fs::OpenOptions,
     io::Write as _,
 };
 
+use chrono::Utc;
 use itertools::Itertools as _;
-use rayon::iter::{IndexedParallelIterator as _, IntoParallelIterator as _, ParallelIterator as _};
+use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use serde::{Deserialize, Serialize};
 use yatzy::{Combo, Dice, Die, Game};
 
@@ -379,7 +381,6 @@ fn game_states_by_empty_field_count() -> HashMap<u8, HashSet<GameState>> {
             }
 
             // if the game cannot possible attain the bonus anymore, set numbers_total = 0
-            // TODO this logic also needs to be added to `state_from_game`
             if numbers_total + possible_remaining_numbers < 63 {
                 numbers_total = 0;
             }
@@ -981,12 +982,11 @@ fn fill_expected_values(
     states: &HashSet<GameState>,
     expected_values: &HashMap<GameState, ExpectedValue>,
 ) -> HashMap<GameState, ExpectedValue> {
-    let mut i = 0;
     states
         .into_iter()
+        .filter(|state| !expected_values.contains_key(state))
+        .take(1000)
         .map(|&state| {
-            i += 1;
-            eprintln!("{i}");
             let value: ExpectedValue = ROLL_5_PROB
                 .into_par_iter()
                 //.take(1) // DEBUG only
@@ -1004,22 +1004,54 @@ fn fill_expected_values(
 
 fn main() {
     let states = game_states_by_empty_field_count();
-    let mut expected_values = HashMap::with_capacity(1_596_821);
+    let mut expected_values = match std::fs::read("checkpoint") {
+        Ok(bytes) => postcard::from_bytes(&bytes).unwrap(),
+        Err(error) => {
+            eprintln!("could not open `checkpoint`: {error}");
+            HashMap::with_capacity(958_973)
+        }
+    };
 
-    let mut states_total = 0;
+    //let mut total_states = 0;
     for n in 1..=14 {
         let state_count = states.get(&n).unwrap().len();
-        states_total += state_count;
+        //total_states += state_count;
         eprintln!(
             "calculating expected values for game states with {} empty field(s) ({} states)",
             n,
             state_count,
         );
-        expected_values.extend(fill_expected_values(states.get(&n).unwrap(), &expected_values));
+        loop {
+            break;
+            let states = states.get(&n).unwrap();
+            let new_values = fill_expected_values(states, &expected_values);
+            if new_values.is_empty() {
+                break;
+            }
+            expected_values.extend(new_values);
+
+            let bytes = postcard::to_allocvec(&expected_values).unwrap();
+            let filename = format!("checkpoint-{}", Utc::now().format("%Y%m%dT%H%M%SZ"));
+            match OpenOptions::new()
+                .create_new(true)
+                .write(true)
+                .open(&filename)
+            {
+                Ok(mut file) => {
+                    match file.write_all(&bytes) {
+                        Ok(()) => {
+                            eprintln!("checkpoint written to {filename}");
+                        }
+                        Err(error) => {
+                            eprintln!("failed to write checkpoint: {error}");
+                        }
+                    }
+                }
+                Err(error) => {
+                    eprintln!("failed to write checkpoint: {error}");
+                }
+            }
+        }
     }
-    eprintln!("{states_total} total states");
-/*
-    let bytes = postcard::to_allocvec(&expected_values).unwrap();
-    let mut stdout = std::io::stdout().lock();
-    stdout.write_all(&bytes).unwrap();*/
+    //eprintln!("{total_states} total states");
 }
