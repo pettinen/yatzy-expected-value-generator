@@ -1,0 +1,15 @@
+[package]
+name = "yatzy-expected-value-generator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+itertools = "0.14.0"
+num-rational = "0.4.2"
+postcard = { version = "1.1.1", features = ["alloc"] }
+rayon = "1.10.0"
+serde = { version = "1.0.219", features = ["derive"] }
+yatzy = { path = "../yatzy" }
+
+[profile.release]
+debug = true
