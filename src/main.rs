@@ -453,36 +453,24 @@ fn expected_value_for_combo_0_rerolls(
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum Choice {
-    SelectCombo(Combo),
-    Reroll1([Die; 1]),
-    Reroll2([Die; 2]),
-    Reroll3([Die; 3]),
-    Reroll4([Die; 4]),
-    Reroll5([Die; 5]),
-}
-
-fn best_choices_for_combo_1_reroll(
+fn expected_value_for_combo_1_reroll(
     game: Game,
     combo: Combo,
     expected_values: &HashMap<GameState, ExpectedValue>,
-) -> (Vec<Choice>, ExpectedValue) {
-    let select_combo_expected_value = expected_value_for_combo_0_rerolls(game, combo, expected_values);
-    let mut max_expected_value = select_combo_expected_value;
-    let mut choices = vec![(Choice::SelectCombo(combo), select_combo_expected_value)];
+) -> ExpectedValue {
+    let mut max_expected_value = expected_value_for_combo_0_rerolls(game, combo, expected_values);
 
     for dice_to_replace in game.dice().into_iter().array_combinations::<1>() {
         let value = ROLL_1_PROB
             .into_par_iter()
             .map(|(replacement_dice, prob)| {
                 let mut game = game.clone();
-                game.replace_dice(&dice_to_replace, &replacement_dice).unwrap();
+                game.replace_dice(&dice_to_replace, &replacement_dice)
+                    .unwrap();
                 prob * expected_value_for_combo_0_rerolls(game, combo, expected_values)
             })
             .sum();
-        if value >= max_expected_value {
-            choices.push((Choice::Reroll1(dice_to_replace), value));
+        if value > max_expected_value {
             max_expected_value = value;
         }
     }
@@ -492,12 +480,12 @@ fn best_choices_for_combo_1_reroll(
             .into_par_iter()
             .map(|(replacement_dice, prob)| {
                 let mut game = game.clone();
-                game.replace_dice(&dice_to_replace, &replacement_dice).unwrap();
+                game.replace_dice(&dice_to_replace, &replacement_dice)
+                    .unwrap();
                 prob * expected_value_for_combo_0_rerolls(game, combo, expected_values)
             })
             .sum();
-        if value >= max_expected_value {
-            choices.push((Choice::Reroll2(dice_to_replace), value));
+        if value > max_expected_value {
             max_expected_value = value;
         }
     }
@@ -507,12 +495,12 @@ fn best_choices_for_combo_1_reroll(
             .into_par_iter()
             .map(|(replacement_dice, prob)| {
                 let mut game = game.clone();
-                game.replace_dice(&dice_to_replace, &replacement_dice).unwrap();
+                game.replace_dice(&dice_to_replace, &replacement_dice)
+                    .unwrap();
                 prob * expected_value_for_combo_0_rerolls(game, combo, expected_values)
             })
             .sum();
-        if value >= max_expected_value {
-            choices.push((Choice::Reroll3(dice_to_replace), value));
+        if value > max_expected_value {
             max_expected_value = value;
         }
     }
@@ -522,12 +510,12 @@ fn best_choices_for_combo_1_reroll(
             .into_par_iter()
             .map(|(replacement_dice, prob)| {
                 let mut game = game.clone();
-                game.replace_dice(&dice_to_replace, &replacement_dice).unwrap();
+                game.replace_dice(&dice_to_replace, &replacement_dice)
+                    .unwrap();
                 prob * expected_value_for_combo_0_rerolls(game, combo, expected_values)
             })
             .sum();
-        if value >= max_expected_value {
-            choices.push((Choice::Reroll4(dice_to_replace), value));
+        if value > max_expected_value {
             max_expected_value = value;
         }
     }
@@ -537,43 +525,37 @@ fn best_choices_for_combo_1_reroll(
             .into_par_iter()
             .map(|(replacement_dice, prob)| {
                 let mut game = game.clone();
-                game.replace_dice(&dice_to_replace, &replacement_dice).unwrap();
+                game.replace_dice(&dice_to_replace, &replacement_dice)
+                    .unwrap();
                 prob * expected_value_for_combo_0_rerolls(game, combo, expected_values)
             })
             .sum();
-        if value >= max_expected_value {
-            choices.push((Choice::Reroll5(dice_to_replace), value));
+        if value > max_expected_value {
             max_expected_value = value;
         }
     }
 
-    (
-        choices.into_iter().filter_map(|(choice, value)| (value == max_expected_value).then_some(choice)).collect(),
-        max_expected_value,
-    )
+    max_expected_value
 }
 
-fn best_choices_for_combo_2_rerolls(
+fn expected_value_for_combo_2_rerolls(
     game: Game,
     combo: Combo,
     expected_values: &HashMap<GameState, ExpectedValue>,
-) -> (Vec<Choice>, ExpectedValue) {
-    let select_combo_expected_value = expected_value_for_combo_0_rerolls(game, combo, expected_values);
-    let mut max_expected_value = select_combo_expected_value;
-    let mut choices = vec![(Choice::SelectCombo(combo), select_combo_expected_value)];
+) -> ExpectedValue {
+    let mut max_expected_value = expected_value_for_combo_0_rerolls(game, combo, expected_values);
 
     for dice_to_replace in game.dice().into_iter().array_combinations::<1>() {
         let value = ROLL_1_PROB
             .into_par_iter()
             .map(|(replacement_dice, prob)| {
                 let mut game = game.clone();
-                game.replace_dice(&dice_to_replace, &replacement_dice).unwrap();
-                let (_, value) = best_choices_for_combo_1_reroll(game, combo, expected_values);
-                prob * value
+                game.replace_dice(&dice_to_replace, &replacement_dice)
+                    .unwrap();
+                prob * expected_value_for_combo_1_reroll(game, combo, expected_values)
             })
             .sum();
-        if value >= max_expected_value {
-            choices.push((Choice::Reroll1(dice_to_replace), value));
+        if value > max_expected_value {
             max_expected_value = value;
         }
     }
@@ -583,13 +565,12 @@ fn best_choices_for_combo_2_rerolls(
             .into_par_iter()
             .map(|(replacement_dice, prob)| {
                 let mut game = game.clone();
-                game.replace_dice(&dice_to_replace, &replacement_dice).unwrap();
-                let (_, value) = best_choices_for_combo_1_reroll(game, combo, expected_values);
-                prob * value
+                game.replace_dice(&dice_to_replace, &replacement_dice)
+                    .unwrap();
+                prob * expected_value_for_combo_1_reroll(game, combo, expected_values)
             })
             .sum();
-        if value >= max_expected_value {
-            choices.push((Choice::Reroll2(dice_to_replace), value));
+        if value > max_expected_value {
             max_expected_value = value;
         }
     }
@@ -599,13 +580,12 @@ fn best_choices_for_combo_2_rerolls(
             .into_par_iter()
             .map(|(replacement_dice, prob)| {
                 let mut game = game.clone();
-                game.replace_dice(&dice_to_replace, &replacement_dice).unwrap();
-                let (_, value) = best_choices_for_combo_1_reroll(game, combo, expected_values);
-                prob * value
+                game.replace_dice(&dice_to_replace, &replacement_dice)
+                    .unwrap();
+                prob * expected_value_for_combo_1_reroll(game, combo, expected_values)
             })
             .sum();
-        if value >= max_expected_value {
-            choices.push((Choice::Reroll3(dice_to_replace), value));
+        if value > max_expected_value {
             max_expected_value = value;
         }
     }
@@ -615,13 +595,12 @@ fn best_choices_for_combo_2_rerolls(
             .into_par_iter()
             .map(|(replacement_dice, prob)| {
                 let mut game = game.clone();
-                game.replace_dice(&dice_to_replace, &replacement_dice).unwrap();
-                let (_, value) = best_choices_for_combo_1_reroll(game, combo, expected_values);
-                prob * value
+                game.replace_dice(&dice_to_replace, &replacement_dice)
+                    .unwrap();
+                prob * expected_value_for_combo_1_reroll(game, combo, expected_values)
             })
             .sum();
-        if value >= max_expected_value {
-            choices.push((Choice::Reroll4(dice_to_replace), value));
+        if value > max_expected_value {
             max_expected_value = value;
         }
     }
@@ -631,21 +610,17 @@ fn best_choices_for_combo_2_rerolls(
             .into_par_iter()
             .map(|(replacement_dice, prob)| {
                 let mut game = game.clone();
-                game.replace_dice(&dice_to_replace, &replacement_dice).unwrap();
-                let (_, value) = best_choices_for_combo_1_reroll(game, combo, expected_values);
-                prob * value
+                game.replace_dice(&dice_to_replace, &replacement_dice)
+                    .unwrap();
+                prob * expected_value_for_combo_1_reroll(game, combo, expected_values)
             })
             .sum();
-        if value >= max_expected_value {
-            choices.push((Choice::Reroll5(dice_to_replace), value));
+        if value > max_expected_value {
             max_expected_value = value;
         }
     }
 
-    (
-        choices.into_iter().filter_map(|(choice, value)| (value == max_expected_value).then_some(choice)).collect(),
-        max_expected_value,
-    )
+    max_expected_value
 }
 
 fn expected_value_0_rerolls(
@@ -674,85 +649,6 @@ fn expected_value_0_rerolls(
     max_expected_value
 }
 
-fn expected_value_1_reroll(
-    game: Game,
-    expected_values: &HashMap<GameState, ExpectedValue>,
-) -> ExpectedValue {
-    let mut max_expected_value = expected_value_0_rerolls(game, expected_values);
-
-    for combo in COMBOS {
-        if game.combo(combo).is_some() {
-            continue;
-        }
-        let (choices, _) = best_choices_for_combo_1_reroll(game, combo, expected_values);
-        for choice in choices {
-            let value = match choice {
-                Choice::SelectCombo(combo) => {
-                    let mut game = game.clone();
-                    game.set_combo(combo);
-                    expected_value_0_rerolls(game, expected_values)
-                }
-                Choice::Reroll1(dice_to_replace) => {
-                    ROLL_1_PROB
-                        .into_par_iter()
-                        .map(|(replacement_dice, prob)| {
-                            let mut game = game.clone();
-                            _ = game.replace_dice(&dice_to_replace, &replacement_dice);
-                            prob * expected_value_0_rerolls(game, expected_values)
-                        })
-                        .sum()
-                }
-                Choice::Reroll2(dice_to_replace) => {
-                    ROLL_2_PROB
-                        .into_par_iter()
-                        .map(|(replacement_dice, prob)| {
-                            let mut game = game.clone();
-                            _ = game.replace_dice(&dice_to_replace, &replacement_dice);
-                            prob * expected_value_0_rerolls(game, expected_values)
-                        })
-                        .sum()
-                }
-                Choice::Reroll3(dice_to_replace) => {
-                    ROLL_3_PROB
-                        .into_par_iter()
-                        .map(|(replacement_dice, prob)| {
-                            let mut game = game.clone();
-                            _ = game.replace_dice(&dice_to_replace, &replacement_dice);
-                            prob * expected_value_0_rerolls(game, expected_values)
-                        })
-                        .sum()
-                }
-                Choice::Reroll4(dice_to_replace) => {
-                    ROLL_4_PROB
-                        .into_par_iter()
-                        .map(|(replacement_dice, prob)| {
-                            let mut game = game.clone();
-                            _ = game.replace_dice(&dice_to_replace, &replacement_dice);
-                            prob * expected_value_0_rerolls(game, expected_values)
-                        })
-                        .sum()
-                }
-                Choice::Reroll5(dice_to_replace) => {
-                    ROLL_5_PROB
-                        .into_par_iter()
-                        .map(|(replacement_dice, prob)| {
-                            let mut game = game.clone();
-                            _ = game.replace_dice(&dice_to_replace, &replacement_dice);
-                            prob * expected_value_0_rerolls(game, expected_values)
-                        })
-                        .sum()
-                }
-            };
-
-            if value > max_expected_value {
-                max_expected_value = value;
-            }
-        }
-    }
-
-    max_expected_value
-}
-
 fn expected_value_2_rerolls(
     game: Game,
     expected_values: &HashMap<GameState, ExpectedValue>,
@@ -763,69 +659,9 @@ fn expected_value_2_rerolls(
         if game.combo(combo).is_some() {
             continue;
         }
-        let (choices, _) = best_choices_for_combo_2_rerolls(game, combo, expected_values);
-        for choice in choices {
-            let value = match choice {
-                Choice::SelectCombo(combo) => {
-                    let mut game = game.clone();
-                    game.set_combo(combo);
-                    expected_value_0_rerolls(game, expected_values)
-                }
-                Choice::Reroll1(dice_to_replace) => {
-                    ROLL_1_PROB
-                        .into_par_iter()
-                        .map(|(replacement_dice, prob)| {
-                            let mut game = game.clone();
-                            _ = game.replace_dice(&dice_to_replace, &replacement_dice);
-                            prob * expected_value_1_reroll(game, expected_values)
-                        })
-                        .sum()
-                }
-                Choice::Reroll2(dice_to_replace) => {
-                    ROLL_2_PROB
-                        .into_par_iter()
-                        .map(|(replacement_dice, prob)| {
-                            let mut game = game.clone();
-                            _ = game.replace_dice(&dice_to_replace, &replacement_dice);
-                            prob * expected_value_1_reroll(game, expected_values)
-                        })
-                        .sum()
-                }
-                Choice::Reroll3(dice_to_replace) => {
-                    ROLL_3_PROB
-                        .into_par_iter()
-                        .map(|(replacement_dice, prob)| {
-                            let mut game = game.clone();
-                            _ = game.replace_dice(&dice_to_replace, &replacement_dice);
-                            prob * expected_value_1_reroll(game, expected_values)
-                        })
-                        .sum()
-                }
-                Choice::Reroll4(dice_to_replace) => {
-                    ROLL_4_PROB
-                        .into_par_iter()
-                        .map(|(replacement_dice, prob)| {
-                            let mut game = game.clone();
-                            _ = game.replace_dice(&dice_to_replace, &replacement_dice);
-                            prob * expected_value_1_reroll(game, expected_values)
-                        })
-                        .sum()
-                }
-                Choice::Reroll5(dice_to_replace) => {
-                    ROLL_5_PROB
-                        .into_par_iter()
-                        .map(|(replacement_dice, prob)| {
-                            let mut game = game.clone();
-                            _ = game.replace_dice(&dice_to_replace, &replacement_dice);
-                            prob * expected_value_1_reroll(game, expected_values)
-                        })
-                        .sum()
-                }
-            };
-
-            if value > max_expected_value {
-                max_expected_value = value;
-            }
+        let value = expected_value_for_combo_2_rerolls(game, combo, expected_values);
+        if value > max_expected_value {
+            max_expected_value = value;
         }
     }
 
@@ -841,6 +677,7 @@ fn fill_expected_values(
         .filter(|state| !expected_values.contains_key(state))
         .take(1000)
         .map(|&state| {
+            eprintln!("next state");
             let value: ExpectedValue = ROLL_5_PROB
                 .into_par_iter()
                 //.take(1) // DEBUG only
@@ -872,11 +709,9 @@ fn main() {
         //total_states += state_count;
         eprintln!(
             "calculating expected values for game states with {} empty field(s) ({} states)",
-            n,
-            state_count,
+            n, state_count,
         );
         loop {
-            break;
             let states = states.get(&n).unwrap();
             let new_values = fill_expected_values(states, &expected_values);
             if new_values.is_empty() {
@@ -891,16 +726,14 @@ fn main() {
                 .write(true)
                 .open(&filename)
             {
-                Ok(mut file) => {
-                    match file.write_all(&bytes) {
-                        Ok(()) => {
-                            eprintln!("checkpoint written to {filename}");
-                        }
-                        Err(error) => {
-                            eprintln!("failed to write checkpoint: {error}");
-                        }
+                Ok(mut file) => match file.write_all(&bytes) {
+                    Ok(()) => {
+                        eprintln!("checkpoint written to {filename}");
                     }
-                }
+                    Err(error) => {
+                        eprintln!("failed to write checkpoint: {error}");
+                    }
+                },
                 Err(error) => {
                     eprintln!("failed to write checkpoint: {error}");
                 }
